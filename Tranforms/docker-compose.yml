@@ -1,0 +1,8 @@
+
+services:
+  pandas-app:
+    build: .
+    container_name: pandas-app
+    volumes:
+      - .:/app
+    command: tail -f /dev/null

@@ -1,0 +1,5 @@
+kind: StorageClass
+metadata:
+  name: kafka-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer                                                                                                       file 3:# Headless Service (dùng cho StatefulSet)

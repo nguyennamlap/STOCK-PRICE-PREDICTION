@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-loader
+  namespace: postgres-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock-loader
+  template:
+    metadata:
+      labels:
+        app: stock-loader
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret-postgres
+      containers:
+        - name: stock-loader
+          image: ghcr.io/nguyennamlap/load_app_v6:latest
+          imagePullPolicy: Always
+          env:
+            # SỬA LỖI: Chuyển sang chuỗi đơn giản và dùng tên Service chung
+            - name: BROKER_LIST
+              value: "kafka-0.kafka.kafka-namespace.svc.cluster.local:9092,kafka-1.kafka.kafka-namespace.svc.cluster.local:9092,kafka-2.kafka.kafka-namespace.svc.cluster.local:9092"
+                        # Đảm bảo cấu hình PostgreSQL cũng đúng
+            - name: PG_HOST 
+              value: "postgres.postgres-namespace.svc.cluster.local"
+            # Thêm các biến môi trường khác nếu cần (PG_USER, PG_PASSWORD, etc.)
+          volumeMounts:
+            - name: stock-storage
+              mountPath: /root/stock_predict/Load/data
+
+      volumes:
+        - name: stock-storage
+          hostPath:
+            path: /home/duy/stock_data
+            type: DirectoryOrCreate

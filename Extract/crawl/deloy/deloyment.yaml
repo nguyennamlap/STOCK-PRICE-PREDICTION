@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scraper
+  namespace: crawl-namespace
+  labels:
+    app: scraper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scraper
+  template:
+    metadata:
+      labels:
+        app: scraper
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret-crawl
+      containers:
+        - name: scraper
+          image: ghcr.io/nguyennamlap/crawl-app-v6:latest
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+            requests:
+              cpu: "0.5"
+              memory: "512Mi"
+          command: ["sh", "-c"]
+          args:
+            - "python main.py; sleep 999999"
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"

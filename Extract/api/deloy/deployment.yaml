@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-demo
+  namespace: kafka-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-demo
+  template:
+    metadata:
+      labels:
+        app: fastapi-demo
+    spec:
+      imagePullSecrets:
+      - name: ghcr-secret-producer
+      containers:
+        - name: fastapi-demo
+          image: ghcr.io/nguyennamlap/api-app-v5:latest
+          ports:
+            - containerPort: 8088
+          env:
+            - name: KAFKA_TOPIC
+              value: "stock_price"
+            - name: BROKER_LIST
+              value: |
+                kafka-0.kafka.kafka-namespace.svc.cluster.local:9092,
+                kafka-1.kafka.kafka-namespace.svc.cluster.local:9092,
+                kafka-2.kafka.kafka-namespace.svc.cluster.local:9092

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: kafka-namespace
+spec:
+  serviceName: kafka
+  replicas: 3
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      initContainers:
+      - name: init-kafka-data
+        image: busybox
+        command: ['sh','-c','mkdir -p /var/lib/kafka/data && chown -R 1001:1001 /var/lib/kafka']
+        volumeMounts:
+          - name: kafka-data
+            mountPath: /var/lib/kafka
+
+      containers:
+        - name: kafka
+          image: confluentinc/cp-kafka:7.7.0
+
+          command:
+            - sh
+            - -c
+            - |
+              export KAFKA_BROKER_ID=$(echo ${POD_NAME##*-});
+              /etc/confluent/docker/run
+
+          ports:
+            - containerPort: 9092
+
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+            - name: KAFKA_LISTENERS
+              value: PLAINTEXT://0.0.0.0:9092
+            
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: PLAINTEXT://$(POD_NAME).kafka.$(POD_NAMESPACE).svc.cluster.local:9092
+
+            - name: KAFKA_ZOOKEEPER_CONNECT
+              value: "zookeeper-0.zookeeper.$(POD_NAMESPACE).svc.cluster.local:2181,zookeeper-1.zookeeper.$(POD_NAMESPACE).svc.cluster.local:2181,zookeeper-2.zookeeper.$(POD_NAMESPACE).svc.cluster.local:2181"
+
+            - name: ALLOW_PLAINTEXT_LISTENER
+              value: "yes"
+            - name: KAFKA_LOG_DIRS
+              value: /var/lib/kafka/data
+
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /var/lib/kafka
+
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 5Gi

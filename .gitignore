@@ -1,0 +1,3 @@
+create_secret.sh
+.env
+*.env

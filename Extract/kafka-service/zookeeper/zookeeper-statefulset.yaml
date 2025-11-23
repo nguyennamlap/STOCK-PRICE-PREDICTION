@@ -1,0 +1,53 @@
+# định nghĩa cách Zookeeper được triển khai trong Kubernetes
+# Image/container nào được dùng (vd: bitnami/zookeeper)
+# Port nào được mở (thường là 2181)
+# Biến môi trường cấu hình Zookeeper
+# Cách gắn PersistentVolumeClaim (PVC) để lưu dữ liệu
+# Labels để Service nhận diện
+# cấu hình StatefulSet để quản lý các Pod Zookeeper
+apiVersion: apps/v1 
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  labels:
+    app: zookeeper
+
+# phần spec định nghĩa cấu hình triển khai
+spec:
+  serviceName: zookeeper
+  replicas: 3  # duy trì 3 bản sao (Pods) của ứng dụng. Tên Pod sẽ là zookeeper-0, zookeeper-1, zookeeper-2
+  selector:    # Bộ chọn này giúp StatefulSet biết nó đang quản lý những Pod nào.
+    matchLabels:
+      app: zookeeper # quản lý tất cả các Pod có nhãn app: zookeeper.
+  template: # định nghĩa mẫu Pod cho các bản sao
+    metadata: # Khai báo rằng mỗi Pod được tạo ra từ khuôn mẫu này sẽ có nhãn app: zookeeper
+      labels:
+        app: zookeeper
+    spec: # định nghĩa cấu hình bên trong Pod
+      containers:
+        - name: zookeeper
+          image: confluentinc/cp-zookeeper:7.7.0
+          ports:
+            - containerPort: 2181
+          env:
+            - name: ZOOKEEPER_CLIENT_PORT # cổng mà Zookeeper lắng nghe kết nối từ client
+              value: "2181"
+            - name: ALLOW_ANONYMOUS_LOGIN # cho phép đăng nhập ẩn danh
+              value: "yes"
+            - name: ZOO_SERVERS
+              value: "zookeeper-0.zookeeper:2888:3888 zookeeper-1.zookeeper:2888:3888 zookeeper-2.zookeeper:2888:3888"
+              # danh sách các máy chủ Zookeeper trong cụm
+          volumeMounts:
+            - name: data # tên volume được gắn phải trùng với tên trong volumeClaimTemplates
+              mountPath: /bitnami/zookeeper # gắn PVC vào thư mục lưu trữ dữ liệu Zookeeper
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+        # StorageClassName phải nằm trong spec này
+        storageClassName: standard
+
